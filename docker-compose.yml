@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  superset:
+    image: apache/superset:latest
+    container_name: superset_app
+    environment:
+      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+      - SUPERSET_ADMIN_USERNAME=${SUPERSET_ADMIN_USERNAME}
+      - SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
+      - SUPERSET_ADMIN_FIRST_NAME=${SUPERSET_ADMIN_FIRST_NAME}
+      - SUPERSET_ADMIN_LAST_NAME=${SUPERSET_ADMIN_LAST_NAME}
+      - SUPERSET_ADMIN_EMAIL=${SUPERSET_ADMIN_EMAIL}
+      - SUPERSET_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset
+    ports:
+      - "9876:8088"
+    volumes:
+      - ./superset_home:/app/superset_home
+    depends_on:
+      - db
+    restart: always
+    command: >
+      /bin/bash -c "
+      superset db upgrade &&
+      superset fab create-admin
+        --username ${SUPERSET_ADMIN_USERNAME}
+        --firstname ${SUPERSET_ADMIN_FIRST_NAME}
+        --lastname ${SUPERSET_ADMIN_LAST_NAME}
+        --email ${SUPERSET_ADMIN_EMAIL}
+        --password ${SUPERSET_ADMIN_PASSWORD} &&
+      superset init &&
+      superset run -h 0.0.0.0 -p 8088
+      "
+
+  db:
+    image: postgres:15
+    container_name: superset_db
+    environment:
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_DB: superset
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  db_data:
+  superset_home:
